@@ -198,7 +198,7 @@ def plot_temperature_effects(results: Dict) -> None:
         instruct_values = [results['instruct'][temp][metric] for temp in temperatures]
         plt.plot(temperatures, instruct_values, 's--', label='Instruct', linewidth=2)
 
-        plt.title(metric)
+        plt.title(f'AMC23 - {metric}')
         plt.xlabel('Temperature')
         plt.ylabel('Accuracy (%)')
         plt.xticks(temperatures)
@@ -235,7 +235,7 @@ def plot_model_comparison(results: Dict) -> None:
         instruct_values = [results['instruct'][temp][metric] for temp in temperatures]
         plt.bar(x + width/2, instruct_values, width, label='Instruct', color='#ff7f0e')
 
-        plt.title(f'{metric} - Baseline vs Instruct')
+        plt.title(f'AMC23 - {metric} - Baseline vs Instruct')
         plt.xlabel('Temperature')
         plt.ylabel('Accuracy (%)')
         plt.xticks(x, temperatures)
@@ -252,17 +252,32 @@ def plot_pass_at_k_curve(results: Dict) -> None:
 
     plt.figure(figsize=(12, 6))
 
+    # Get all unique temperatures across both models and sort them
+    all_temperatures = sorted(set(results['baseline'].keys()) | set(results['instruct'].keys()))
+
+    # Create a color map with unique colors for each temperature
+    color_map = plt.get_cmap('tab10', len(all_temperatures))
+    temp_to_color = {temp: color_map(i) for i, temp in enumerate(all_temperatures)}
+
+    # Model style mapping: different line styles and markers for different models
+    model_styles = {
+        'baseline': {'marker': 'o', 'linestyle': '-'},
+        'instruct': {'marker': 's', 'linestyle': '--'}
+    }
+
     # Baseline model
     for temp in sorted(results['baseline'].keys()):
         values = [results['baseline'][temp][f'pass@{k}'] for k in ks]
-        plt.plot(ks, values, 'o-', label=f'Baseline (T={temp})')
+        color = temp_to_color[temp]
+        plt.plot(ks, values, marker='o', linestyle='-', color=color, label=f'Baseline (T={temp})')
 
     # Instruct model
     for temp in sorted(results['instruct'].keys()):
         values = [results['instruct'][temp][f'pass@{k}'] for k in ks]
-        plt.plot(ks, values, 's--', label=f'Instruct (T={temp})')
+        color = temp_to_color[temp]
+        plt.plot(ks, values, marker='s', linestyle='--', color=color, label=f'Instruct (T={temp})')
 
-    plt.title('pass@k vs k for AMC Dataset')
+    plt.title('pass@k vs k for AMC23 Dataset')
     plt.xlabel('k')
     plt.ylabel('pass@k (%)')
     plt.xscale('log', base=2)
@@ -319,7 +334,7 @@ def plot_majority_vote_improvement(results: Dict) -> None:
     # Add zero line
     plt.axhline(y=0, color='black', linestyle='--', alpha=0.5)
 
-    plt.title('Majority Vote Improvement over pass@1')
+    plt.title('AMC23 - Majority Vote Improvement over pass@1')
     plt.xlabel('Temperature')
     plt.ylabel('Improvement (%)')
     plt.xticks(x, temperatures)
@@ -336,7 +351,7 @@ def main():
     os.makedirs('./visualizations', exist_ok=True)
 
     # Load AMC data
-    base_dir = '/Users/heyujie/Documents/cuhksz-all-sync/code/dda5001_hw/final_project/part3/res/cleaned'
+    base_dir = './res/cleaned'
     print(f"Loading AMC data from {base_dir}...")
     amc_data = load_amc_data(base_dir)
 
@@ -374,6 +389,27 @@ def main():
 
     # Export the formatted DataFrame
     df_csv.to_csv('./visualizations/amc_results_summary.csv', index=False)
+
+    # Generate majority vote improvements JSON for cross-validation
+    improvement_data = {'amc': []}
+    for model_type in results.keys():
+        for temp in sorted(results[model_type].keys()):
+            pass1 = results[model_type][temp]['pass@1']
+            maj1 = results[model_type][temp]['maj@1']
+            improvement = maj1 - pass1
+            improvement_data['amc'].append({
+                'model_type': model_type,
+                'temperature': temp,
+                'pass@1': float(f"{pass1:.2f}"),
+                'maj@1': float(f"{maj1:.2f}"),
+                'improvement': float(f"{improvement:.2f}")
+            })
+
+    # Save improvement data to JSON file
+    with open('./visualizations/amc_majority_vote_improvements.json', 'w', encoding='utf-8') as f:
+        json.dump(improvement_data, f, indent=2, ensure_ascii=False)
+
+    print("Saved AMC majority vote improvements to ./visualizations/amc_majority_vote_improvements.json")
 
     # Generate visualizations
     print("\nGenerating visualizations...")
