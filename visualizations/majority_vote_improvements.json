@@ -20,6 +20,27 @@
       "pass@1": 35.15,
       "maj@1": 44.8,
       "improvement": 9.65
+    },
+    {
+      "model_type": "instruct",
+      "temperature": 1.0,
+      "pass@1": 74.28,
+      "maj@1": 79.4,
+      "improvement": 5.12
+    },
+    {
+      "model_type": "instruct",
+      "temperature": 1.2,
+      "pass@1": 69.58,
+      "maj@1": 76.6,
+      "improvement": 7.02
+    },
+    {
+      "model_type": "instruct",
+      "temperature": 0.6,
+      "pass@1": 75.0,
+      "maj@1": 79.2,
+      "improvement": 4.2
     }
   ],
   "aime": [
