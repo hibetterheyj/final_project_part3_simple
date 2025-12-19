@@ -19,6 +19,13 @@ DATASET_NAME_MAP = {
     'math500': 'MATH500'
 }
 
+# Global temperature range parameter
+TEMPERATURE_RANGE = [0.6, 1.0, 1.2]
+
+# Font size settings for plots
+PLOT_FONT_SIZE = 14
+TITLE_FONT_SIZE = 16
+
 # %% [markdown]
 # Data Loading Functions
 
@@ -80,6 +87,10 @@ def load_all_eval_data(base_dir: str) -> Dict[str, Dict[str, Dict[str, List[Dict
                     continue  # Skip files with invalid temperature format
             else:
                 continue  # Skip files that don't have temperature in name
+
+            # Only load data for temperatures in the specified range
+            if temperature not in TEMPERATURE_RANGE:
+                continue
 
             # Load the data
             data = load_eval_file(file_path)
@@ -462,6 +473,9 @@ def plot_temperature_effects(df: pd.DataFrame) -> None:
     """Plot the effects of temperature on model performance."""
     datasets = df['dataset'].unique()
 
+    # Set global font size
+    plt.rcParams.update({'font.size': PLOT_FONT_SIZE})
+
     for dataset in datasets:
         # Select metrics based on dataset type
         if dataset == 'math500':
@@ -480,6 +494,7 @@ def plot_temperature_effects(df: pd.DataFrame) -> None:
         else:
             figsize = (24, 12)
 
+        # Plot with title for PNG
         plt.figure(figsize=figsize)
 
         for i, metric in enumerate(metrics, 1):
@@ -488,13 +503,13 @@ def plot_temperature_effects(df: pd.DataFrame) -> None:
             # Only show model types that have actual data, ensuring baseline comes first
             model_types = sorted(df[(df['dataset'] == dataset)]['model_type'].unique(), key=lambda x: 0 if x == 'baseline' else 1)
             colors = ['#1f77b4', '#ff7f0e']  # blue for baseline, orange for instruct
-            for i, model_type in enumerate(model_types):
+            for j, model_type in enumerate(model_types):
                 model_data = df[(df['dataset'] == dataset) & (df['model_type'] == model_type)]
                 # Sort data by temperature to ensure proper ordering
                 model_data = model_data.sort_values('temperature')
-                plt.plot(model_data['temperature'], model_data[metric], marker='o', label=model_type.capitalize(), color=colors[i % len(colors)])
+                plt.plot(model_data['temperature'], model_data[metric], marker='o', label=model_type.capitalize(), color=colors[j % len(colors)])
 
-            plt.title(f'{DATASET_NAME_MAP.get(dataset, dataset)} - {metric}')
+            plt.title(f'{DATASET_NAME_MAP.get(dataset, dataset)} - {metric}', fontsize=TITLE_FONT_SIZE)
             plt.xlabel('Temperature')
             plt.ylabel(f'{metric} (%)')
             plt.legend()
@@ -502,12 +517,41 @@ def plot_temperature_effects(df: pd.DataFrame) -> None:
 
         plt.tight_layout()
         plt.savefig(f'./visualizations/{dataset}_temperature_effects.png', dpi=300, bbox_inches='tight')
-        plt.close()  # Close the figure instead of showing it
+        # plt.savefig(f'./visualizations/{dataset}_temperature_effects.pdf', bbox_inches='tight')  # Commented out: PDF with title
+        plt.close()
+
+        # Plot without title for PDF (for report integration)
+        plt.figure(figsize=figsize)
+
+        for i, metric in enumerate(metrics, 1):
+            plt.subplot(num_rows, num_cols, i)
+
+            # Only show model types that have actual data, ensuring baseline comes first
+            model_types = sorted(df[(df['dataset'] == dataset)]['model_type'].unique(), key=lambda x: 0 if x == 'baseline' else 1)
+            colors = ['#1f77b4', '#ff7f0e']  # blue for baseline, orange for instruct
+            for j, model_type in enumerate(model_types):
+                model_data = df[(df['dataset'] == dataset) & (df['model_type'] == model_type)]
+                # Sort data by temperature to ensure proper ordering
+                model_data = model_data.sort_values('temperature')
+                plt.plot(model_data['temperature'], model_data[metric], marker='o', label=model_type.capitalize(), color=colors[j % len(colors)])
+
+            # No title for PDF version
+            plt.xlabel('Temperature')
+            plt.ylabel(f'{metric} (%)')
+            plt.legend()
+            plt.grid(True, alpha=0.3)
+
+        plt.tight_layout()
+        plt.savefig(f'./visualizations/{dataset}_temperature_effects.pdf', bbox_inches='tight')  # Removed _no_title suffix
+        plt.close()
 
 
 def plot_model_comparison(df: pd.DataFrame) -> None:
     """Plot comparison between baseline and instruct models."""
     datasets = df['dataset'].unique()
+
+    # Set global font size
+    plt.rcParams.update({'font.size': PLOT_FONT_SIZE})
 
     for dataset in datasets:
         # Get temperatures that exist for this dataset
@@ -524,18 +568,18 @@ def plot_model_comparison(df: pd.DataFrame) -> None:
         num_rows = 2
         num_cols = (num_metrics + num_rows - 1) // num_rows  # Ceiling division
 
-        # Set appropriate figure size based on number of columns
+        # Set appropriate figure size based on number of columns (compressed width)
         if num_cols <= 3:
-            figsize = (18, 10)
+            figsize = (14, 8)  # Reduced width from 18 to 14
         else:
-            figsize = (24, 12)
+            figsize = (20, 10)  # Reduced width from 24 to 20
 
+        # Plot with title for PNG
         plt.figure(figsize=figsize)
 
         for i, metric in enumerate(metrics, 1):
             plt.subplot(num_rows, num_cols, i)
 
-            width = 0.35
             x = np.arange(len(temperatures))
 
             # Only show model types that have actual data, ensuring baseline comes first
@@ -548,7 +592,7 @@ def plot_model_comparison(df: pd.DataFrame) -> None:
                 model_data = df[(df['dataset'] == dataset) & (df['model_type'] == model_type)].sort_values('temperature')[metric]
                 plt.bar(x + (j - len(dataset_models)/2 + 0.5) * width, model_data, width, label=model_type.capitalize(), color=colors[j % len(colors)])
 
-            plt.title(f'{DATASET_NAME_MAP.get(dataset, dataset)} - {metric}')
+            plt.title(f'{DATASET_NAME_MAP.get(dataset, dataset)} - {metric}', fontsize=TITLE_FONT_SIZE)
             plt.xlabel('Temperature')
             plt.ylabel(f'{metric} (%)')
             plt.xticks(x, temperatures)
@@ -557,12 +601,46 @@ def plot_model_comparison(df: pd.DataFrame) -> None:
 
         plt.tight_layout()
         plt.savefig(f'./visualizations/{dataset}_model_comparison.png', dpi=300, bbox_inches='tight')
-        plt.close()  # Close the figure instead of showing it
+        # plt.savefig(f'./visualizations/{dataset}_model_comparison.pdf', bbox_inches='tight')  # Commented out: PDF with title
+        plt.close()
+
+        # Plot without title for PDF (for report integration)
+        plt.figure(figsize=figsize)
+
+        for i, metric in enumerate(metrics, 1):
+            plt.subplot(num_rows, num_cols, i)
+
+            x = np.arange(len(temperatures))
+
+            # Only show model types that have actual data, ensuring baseline comes first
+            dataset_models = sorted(df[(df['dataset'] == dataset)]['model_type'].unique(), key=lambda x: 0 if x == 'baseline' else 1)
+            colors = ['#1f77b4', '#ff7f0e']  # blue for baseline, orange for instruct
+            width = 0.35 / len(dataset_models)
+
+            for j, model_type in enumerate(dataset_models):
+                # Filter data for this dataset, model type, and metric, sorted by temperature
+                model_data = df[(df['dataset'] == dataset) & (df['model_type'] == model_type)].sort_values('temperature')[metric]
+                plt.bar(x + (j - len(dataset_models)/2 + 0.5) * width, model_data, width, label=model_type.capitalize(), color=colors[j % len(colors)])
+
+            # No title for PDF version
+            plt.xlabel('Temperature')
+            plt.ylabel(f'{metric} (%)')
+            plt.xticks(x, temperatures)
+            plt.legend()
+            plt.grid(True, alpha=0.3, axis='y')
+
+        plt.tight_layout()
+        plt.savefig(f'./visualizations/{dataset}_model_comparison.pdf', bbox_inches='tight')  # Removed _no_title suffix
+        plt.close()
 
 
 def plot_pass_at_k_vs_k(results_dict: Dict[str, pd.DataFrame]) -> None:
     """Plot pass@k as a function of k for different datasets and models."""
+    # Set global font size
+    plt.rcParams.update({'font.size': PLOT_FONT_SIZE})
+
     for dataset, df in results_dict.items():
+        # Plot with title for PNG
         plt.figure(figsize=(12, 6))
 
         # Get all unique temperatures across both models and sort them
@@ -593,7 +671,7 @@ def plot_pass_at_k_vs_k(results_dict: Dict[str, pd.DataFrame]) -> None:
                          marker=style['marker'], linestyle=style['linestyle'],
                          color=color, label=f'{model_type.capitalize()} (T={temp})')
 
-        plt.title(f'pass@k vs k for {DATASET_NAME_MAP.get(dataset, dataset)} Dataset')
+        plt.title(f'pass@k vs k for {DATASET_NAME_MAP.get(dataset, dataset)} Dataset', fontsize=TITLE_FONT_SIZE)
         plt.xlabel('k')
         plt.ylabel('pass@k (%)')
         plt.xscale('log', base=2)
@@ -602,15 +680,62 @@ def plot_pass_at_k_vs_k(results_dict: Dict[str, pd.DataFrame]) -> None:
         plt.grid(True, alpha=0.3)
         plt.tight_layout()
         plt.savefig(f'./visualizations/{dataset}_pass_at_k_curve.png', dpi=300, bbox_inches='tight')
-        plt.close()  # Close the figure instead of showing it
+        # plt.savefig(f'./visualizations/{dataset}_pass_at_k_curve.pdf', bbox_inches='tight')  # Commented out: PDF with title
+        plt.close()
+
+        # Plot without title for PDF (for report integration)
+        plt.figure(figsize=(12, 6))
+
+        # Get all unique temperatures across both models and sort them
+        unique_temperatures = sorted(df['temperature'].unique())
+
+        # Create a color map with unique colors for each temperature
+        color_map = plt.get_cmap('tab10', len(unique_temperatures))
+        temp_to_color = {temp: color_map(i) for i, temp in enumerate(unique_temperatures)}
+
+        # Model style mapping: different line styles and markers for different models
+        model_styles = {
+            'baseline': {'marker': 'o', 'linestyle': '-'},
+            'instruct': {'marker': 's', 'linestyle': '--'}
+        }
+
+        # Ensure baseline comes first in the legend and plot ordering
+        model_types = sorted(df['model_type'].unique(), key=lambda x: 0 if x == 'baseline' else 1)
+
+        for model_type in model_types:
+            model_data = df[df['model_type'] == model_type]
+            style = model_styles[model_type]
+
+            for temp in sorted(model_data['temperature'].unique()):
+                temp_data = model_data[model_data['temperature'] == temp]
+                color = temp_to_color[temp]
+
+                plt.plot(temp_data['k'], temp_data['pass@k'],
+                         marker=style['marker'], linestyle=style['linestyle'],
+                         color=color, label=f'{model_type.capitalize()} (T={temp})')
+
+        # No title for PDF version
+        plt.xlabel('k')
+        plt.ylabel('pass@k (%)')
+        plt.xscale('log', base=2)
+        plt.xticks(sorted(df['k'].unique()), sorted(df['k'].unique()))
+        plt.legend()
+        plt.grid(True, alpha=0.3)
+        plt.tight_layout()
+        plt.savefig(f'./visualizations/{dataset}_pass_at_k_curve.pdf', bbox_inches='tight')  # Removed _no_title suffix
+        plt.close()
 
 
 def plot_majority_vote_improvement(df: pd.DataFrame) -> None:
     """Plot the improvement from majority vote compared to pass@1."""
     datasets = df['dataset'].unique()
 
+    # Set global font size
+    plt.rcParams.update({'font.size': PLOT_FONT_SIZE})
+
     for dataset in datasets:
-        plt.figure(figsize=(10, 6))
+        # Plot with title for PNG
+        plt.figure(figsize=(8, 6))  # Reduced width from 10 to 8
 
         # Get sorted list of temperatures
         temperatures = sorted(df[(df['dataset'] == dataset)]['temperature'].unique())
@@ -654,12 +779,12 @@ def plot_majority_vote_improvement(df: pd.DataFrame) -> None:
                 x_pos = bar.get_x() + bar.get_width() / 2
 
                 # Add text with ha='center' to center it above the bar
-                plt.text(x_pos, y_pos, label, ha='center', va='bottom', fontsize=9)
+                plt.text(x_pos, y_pos, label, ha='center', va='bottom', fontsize=PLOT_FONT_SIZE-2)
 
         # Add zero line
         plt.axhline(y=0, color='black', linestyle='--', alpha=0.5)
 
-        plt.title(f'{DATASET_NAME_MAP.get(dataset, dataset)} - Majority Vote Improvement over pass@1')
+        plt.title(f'{DATASET_NAME_MAP.get(dataset, dataset)} - Majority Vote Improvement over pass@1', fontsize=TITLE_FONT_SIZE)
         plt.xlabel('Temperature')
         plt.ylabel('Improvement (%)')
         plt.xticks(x, temperatures)
@@ -667,7 +792,68 @@ def plot_majority_vote_improvement(df: pd.DataFrame) -> None:
         plt.grid(True, alpha=0.3, axis='y')
         plt.tight_layout()
         plt.savefig(f'./visualizations/{dataset}_majority_vote_improvement.png', dpi=300, bbox_inches='tight')
-        plt.close()  # Close the figure instead of showing it
+        # plt.savefig(f'./visualizations/{dataset}_majority_vote_improvement.pdf', bbox_inches='tight')  # Commented out: PDF with title
+        plt.close()
+
+        # Plot without title for PDF (for report integration)
+        plt.figure(figsize=(8, 6))  # Reduced width from 10 to 8
+
+        # Get sorted list of temperatures
+        temperatures = sorted(df[(df['dataset'] == dataset)]['temperature'].unique())
+
+        x = np.arange(len(temperatures))
+        width = 0.35
+
+        # Get all model types, ensuring baseline comes first
+        model_types = sorted(df[(df['dataset'] == dataset)]['model_type'].unique(), key=lambda x: 0 if x == 'baseline' else 1)
+        colors = ['#1f77b4', '#ff7f0e']  # blue for baseline, orange for instruct
+
+        for i, model_type in enumerate(model_types):
+            model_data = df[(df['dataset'] == dataset) & (df['model_type'] == model_type)]
+            # Sort data by temperature
+            model_data = model_data.sort_values('temperature')
+
+            # Calculate improvement values
+            improvements = model_data['improvement'].values
+
+            # Create bars for improvements
+            bars = plt.bar(x + (i - len(model_types)/2 + 0.5) * width,
+                          improvements,
+                          width,
+                          label=model_type.capitalize(),
+                          color=colors[i % len(colors)])
+
+            # Add improvement values above bars
+            for bar, improvement in zip(bars, improvements):
+                # For positive improvements, display above the bar
+                # For negative improvements, display above 0.0% line
+                if improvement > 0:
+                    height = bar.get_height()
+                    y_pos = height + 0.1
+                else:
+                    y_pos = 0.1  # Position above 0.0% line
+
+                # Format improvement value
+                label = f"{improvement:.2f}%"
+
+                # Position text in the middle of the bar
+                x_pos = bar.get_x() + bar.get_width() / 2
+
+                # Add text with ha='center' to center it above the bar
+                plt.text(x_pos, y_pos, label, ha='center', va='bottom', fontsize=PLOT_FONT_SIZE-2)
+
+        # Add zero line
+        plt.axhline(y=0, color='black', linestyle='--', alpha=0.5)
+
+        # No title for PDF version
+        plt.xlabel('Temperature')
+        plt.ylabel('Improvement (%)')
+        plt.xticks(x, temperatures)
+        plt.legend()
+        plt.grid(True, alpha=0.3, axis='y')
+        plt.tight_layout()
+        plt.savefig(f'./visualizations/{dataset}_majority_vote_improvement.pdf', bbox_inches='tight')  # Removed _no_title suffix
+        plt.close()
 
 # %% [markdown]
 # Main Analysis Function

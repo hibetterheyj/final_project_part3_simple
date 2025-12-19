@@ -110,20 +110,6 @@
       "improvement": 15.86
     },
     {
-      "model_type": "baseline",
-      "temperature": 0.8,
-      "pass@1": 28.28,
-      "maj@1": 40.0,
-      "improvement": 11.72
-    },
-    {
-      "model_type": "instruct",
-      "temperature": 0.8,
-      "pass@1": 54.34,
-      "maj@1": 62.5,
-      "improvement": 8.16
-    },
-    {
       "model_type": "instruct",
       "temperature": 1.2,
       "pass@1": 47.5,
