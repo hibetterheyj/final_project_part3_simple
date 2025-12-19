@@ -20,7 +20,7 @@ DATASET_NAME_MAP = {
 }
 
 # Global temperature range parameter
-TEMPERATURE_RANGE = [0.6, 1.0, 1.2]
+TEMPERATURE_RANGE = [0.6, 0.8, 1.0, 1.2]
 
 # Font size settings for plots
 PLOT_FONT_SIZE = 14
@@ -592,6 +592,14 @@ def plot_model_comparison(df: pd.DataFrame) -> None:
                 model_data = df[(df['dataset'] == dataset) & (df['model_type'] == model_type)].sort_values('temperature')[metric]
                 plt.bar(x + (j - len(dataset_models)/2 + 0.5) * width, model_data, width, label=model_type.capitalize(), color=colors[j % len(colors)])
 
+            # Set y-axis limits based on dataset type
+            if dataset == 'aime':
+                plt.ylim(0, 50)  # AIME: 8 subplots to ymax=50%
+            elif dataset == 'amc':
+                plt.ylim(0, 100)  # AMC: 8 subplots to ymax=100%
+            elif dataset == 'math500':
+                plt.ylim(0, 100)  # MATH500: 6 subplots to ymax=100%
+
             plt.title(f'{DATASET_NAME_MAP.get(dataset, dataset)} - {metric}', fontsize=TITLE_FONT_SIZE)
             plt.xlabel('Temperature')
             plt.ylabel(f'{metric} (%)')
@@ -621,6 +629,14 @@ def plot_model_comparison(df: pd.DataFrame) -> None:
                 # Filter data for this dataset, model type, and metric, sorted by temperature
                 model_data = df[(df['dataset'] == dataset) & (df['model_type'] == model_type)].sort_values('temperature')[metric]
                 plt.bar(x + (j - len(dataset_models)/2 + 0.5) * width, model_data, width, label=model_type.capitalize(), color=colors[j % len(colors)])
+
+            # Set y-axis limits based on dataset type
+            if dataset == 'aime':
+                plt.ylim(0, 50)  # AIME: 8 subplots to ymax=50%
+            elif dataset == 'amc':
+                plt.ylim(0, 100)  # AMC: 8 subplots to ymax=100%
+            elif dataset == 'math500':
+                plt.ylim(0, 100)  # MATH500: 6 subplots to ymax=100%
 
             # No title for PDF version
             plt.xlabel('Temperature')
@@ -671,6 +687,14 @@ def plot_pass_at_k_vs_k(results_dict: Dict[str, pd.DataFrame]) -> None:
                          marker=style['marker'], linestyle=style['linestyle'],
                          color=color, label=f'{model_type.capitalize()} (T={temp})')
 
+        # Set y-axis limits based on dataset type
+        if dataset == 'aime':
+            plt.ylim(0, 50)  # AIME: ymax=50%
+        elif dataset == 'amc':
+            plt.ylim(0, 100)  # AMC: ymax=100%
+        elif dataset == 'math500':
+            plt.ylim(0, 100)  # MATH500: ymax=100%
+
         plt.title(f'pass@k vs k for {DATASET_NAME_MAP.get(dataset, dataset)} Dataset', fontsize=TITLE_FONT_SIZE)
         plt.xlabel('k')
         plt.ylabel('pass@k (%)')
@@ -714,6 +738,14 @@ def plot_pass_at_k_vs_k(results_dict: Dict[str, pd.DataFrame]) -> None:
                          marker=style['marker'], linestyle=style['linestyle'],
                          color=color, label=f'{model_type.capitalize()} (T={temp})')
 
+        # Set y-axis limits based on dataset type
+        if dataset == 'aime':
+            plt.ylim(0, 50)  # AIME: ymax=50%
+        elif dataset == 'amc':
+            plt.ylim(0, 100)  # AMC: ymax=100%
+        elif dataset == 'math500':
+            plt.ylim(0, 100)  # MATH500: ymax=100%
+
         # No title for PDF version
         plt.xlabel('k')
         plt.ylabel('pass@k (%)')
@@ -747,6 +779,19 @@ def plot_majority_vote_improvement(df: pd.DataFrame) -> None:
         model_types = sorted(df[(df['dataset'] == dataset)]['model_type'].unique(), key=lambda x: 0 if x == 'baseline' else 1)
         colors = ['#1f77b4', '#ff7f0e']  # blue for baseline, orange for instruct
 
+        # Calculate y-axis limits that extend to next even number
+        all_improvements = df[(df['dataset'] == dataset)]['improvement'].values
+        y_min = min(all_improvements) if len(all_improvements) > 0 else 0
+        y_max = max(all_improvements) if len(all_improvements) > 0 else 0
+
+        # Extend y-axis limits to next even number
+        y_min_extended = np.floor(y_min / 2) * 2 if y_min < 0 else 0
+        y_max_extended = np.ceil(y_max / 2) * 2 if y_max > 0 else 0
+
+        # Ensure we have a reasonable range if values are very small
+        if y_max_extended - y_min_extended < 2:
+            y_max_extended = y_min_extended + 2
+
         for i, model_type in enumerate(model_types):
             model_data = df[(df['dataset'] == dataset) & (df['model_type'] == model_type)]
             # Sort data by temperature
@@ -783,6 +828,13 @@ def plot_majority_vote_improvement(df: pd.DataFrame) -> None:
 
         # Add zero line
         plt.axhline(y=0, color='black', linestyle='--', alpha=0.5)
+
+        # Set y-axis limits and ensure tick labels are visible
+        plt.ylim(y_min_extended, y_max_extended)
+
+        # Generate y-axis ticks with step of 2 and ensure they are visible
+        y_ticks = np.arange(y_min_extended, y_max_extended + 2, 2)
+        plt.yticks(y_ticks, [f"{tick:.0f}%" for tick in y_ticks])
 
         plt.title(f'{DATASET_NAME_MAP.get(dataset, dataset)} - Majority Vote Improvement over pass@1', fontsize=TITLE_FONT_SIZE)
         plt.xlabel('Temperature')
@@ -808,6 +860,19 @@ def plot_majority_vote_improvement(df: pd.DataFrame) -> None:
         model_types = sorted(df[(df['dataset'] == dataset)]['model_type'].unique(), key=lambda x: 0 if x == 'baseline' else 1)
         colors = ['#1f77b4', '#ff7f0e']  # blue for baseline, orange for instruct
 
+        # Calculate y-axis limits that extend to next even number
+        all_improvements = df[(df['dataset'] == dataset)]['improvement'].values
+        y_min = min(all_improvements) if len(all_improvements) > 0 else 0
+        y_max = max(all_improvements) if len(all_improvements) > 0 else 0
+
+        # Extend y-axis limits to next even number
+        y_min_extended = np.floor(y_min / 2) * 2 if y_min < 0 else 0
+        y_max_extended = np.ceil(y_max / 2) * 2 if y_max > 0 else 0
+
+        # Ensure we have a reasonable range if values are very small
+        if y_max_extended - y_min_extended < 2:
+            y_max_extended = y_min_extended + 2
+
         for i, model_type in enumerate(model_types):
             model_data = df[(df['dataset'] == dataset) & (df['model_type'] == model_type)]
             # Sort data by temperature
@@ -844,6 +909,13 @@ def plot_majority_vote_improvement(df: pd.DataFrame) -> None:
 
         # Add zero line
         plt.axhline(y=0, color='black', linestyle='--', alpha=0.5)
+
+        # Set y-axis limits and ensure tick labels are visible
+        plt.ylim(y_min_extended, y_max_extended)
+
+        # Generate y-axis ticks with step of 2 and ensure they are visible
+        y_ticks = np.arange(y_min_extended, y_max_extended + 2, 2)
+        plt.yticks(y_ticks, [f"{tick:.0f}%" for tick in y_ticks])
 
         # No title for PDF version
         plt.xlabel('Temperature')
