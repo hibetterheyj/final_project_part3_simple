@@ -1,4 +1,4 @@
-# 数据分析可视化
+# Qwen Test-Time Scaling on Math Datasets 结果数据分析可视化
 
 ## 项目概述
 
@@ -54,24 +54,14 @@
 
 ## 运行方法
 
-### 1. 安装依赖
-
 ```bash
+# 安装依赖
 pip install -r requirements.txt
-```
 
-### 2. 运行专项分析（单个数据集）
-
-```bash
 # AMC数据集分析
 python analyze_amc_example.py
 
-# 其他数据集可通过修改analyze_results.py中的配置进行专项分析
-```
-
-### 3. 运行综合分析（所有数据集）
-
-```bash
+# 运行综合分析（所有数据集）
 python analyze_results.py
 ```
 
@@ -92,9 +82,17 @@ python analyze_results.py
 
 ### 模型对比分析
 
-- 基线模型 vs 指令模型性能对比
 - 各温度下的模型表现差异
+
+| Math500                                           | AMC23                                         | AIME25                                         |
+| ------------------------------------------------- | --------------------------------------------- | ---------------------------------------------- |
+| ![](./visualizations/math500_pass_at_k_curve.png) | ![](./visualizations/amc_pass_at_k_curve.png) | ![](./visualizations/aime_pass_at_k_curve.png) |
+
 - 多数投票策略效果评估
+
+| Math500                                                     | AMC23                                                   | AIME25                                                   |
+| ----------------------------------------------------------- | ------------------------------------------------------- | -------------------------------------------------------- |
+| ![](./visualizations/math500_majority_vote_improvement.png) | ![](./visualizations/amc_majority_vote_improvement.png) | ![](./visualizations/aime_majority_vote_improvement.png) |
 
 ### 多数投票改进分析
 
